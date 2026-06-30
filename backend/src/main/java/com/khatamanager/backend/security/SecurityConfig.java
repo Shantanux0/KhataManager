@@ -63,9 +63,9 @@ public class SecurityConfig {
         // Allow the React dev server origins and dynamic Railway frontend URLs
         String frontendUrl = System.getenv("FRONTEND_URL");
         if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173", frontendUrl));
+            configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173", "https://khatamanagerindia.vercel.app", frontendUrl));
         } else {
-            configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+            configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173", "https://khatamanagerindia.vercel.app"));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
