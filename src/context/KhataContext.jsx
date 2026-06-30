@@ -65,9 +65,9 @@ export function KhataProvider({ children }) {
       try {
         const headers = { 'Authorization': `Bearer ${user.token}` };
         const [custRes, entRes, payRes] = await Promise.all([
-          fetch('${API_URL}/customers', { headers }),
-          fetch('${API_URL}/entries', { headers }),
-          fetch('${API_URL}/payments', { headers })
+          fetch(`${API_URL}/customers`, { headers }),
+          fetch(`${API_URL}/entries`, { headers }),
+          fetch(`${API_URL}/payments`, { headers })
         ]);
         
         if (custRes.ok && entRes.ok && payRes.ok) {
@@ -100,7 +100,7 @@ export function KhataProvider({ children }) {
     try {
       if (action.type === 'ADD_CUSTOMER') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('${API_URL}/customers', {
+        const res = await fetch(`${API_URL}/customers`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)
@@ -122,7 +122,7 @@ export function KhataProvider({ children }) {
         }
       } else if (action.type === 'ADD_ENTRY') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('${API_URL}/entries', {
+        const res = await fetch(`${API_URL}/entries`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)
@@ -135,7 +135,7 @@ export function KhataProvider({ children }) {
         }
       } else if (action.type === 'ADD_PAYMENT') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('${API_URL}/payments', {
+        const res = await fetch(`${API_URL}/payments`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)
