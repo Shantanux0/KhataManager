@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Phone, MapPin, FileText, Edit3, Check, X, IndianRupee, Download, Plus } from 'lucide-react';
 import { useCustomer } from '../hooks/useCustomers';
@@ -24,32 +24,52 @@ function groupByDate(entries) {
 
 function PaymentModal({ customer, isOpen, onClose }) {
   const { dispatch } = useKhata();
-  const [amount, setAmount] = useState('');
+  const [cashHanded, setCashHanded] = useState('');
+  const [amountToDeduct, setAmountToDeduct] = useState('');
+  const [holdChange, setHoldChange] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
-  const parsedAmount = parseInt(amount, 10) || 0;
-  const remaining = Math.max(0, (customer?.outstanding || 0) - parsedAmount);
+  const outstanding = customer?.outstanding || 0;
+  const parsedCash = parseFloat(cashHanded) || 0;
+  const parsedDeduct = parseFloat(amountToDeduct) || 0;
+
+  // Auto-fill amount to deduct when cash handed changes
+  useEffect(() => {
+    if (parsedCash > 0) {
+      setAmountToDeduct(String(Math.min(outstanding, parsedCash)));
+    } else {
+      setAmountToDeduct('');
+    }
+  }, [cashHanded, outstanding]);
+
+  const changeToReturn = Math.max(0, parsedCash - parsedDeduct);
+  const finalPaymentAmount = holdChange ? parsedCash : parsedDeduct;
+  const remaining = Math.max(0, outstanding - finalPaymentAmount);
 
   function handleSave() {
-    if (!parsedAmount || parsedAmount <= 0) return;
+    if (finalPaymentAmount <= 0) return;
     dispatch({
       type: 'ADD_PAYMENT',
       payload: {
         id: `p${Date.now()}`,
         customerId: customer.id,
-        amount: parsedAmount,
+        amount: finalPaymentAmount,
         date: TODAY,
         timestamp: new Date().toISOString(),
         type: 'payment',
-        note: 'Cash payment received',
+        note: holdChange 
+          ? `Cash payment (Full ₹${parsedCash} kept, ₹${changeToReturn} on hold)`
+          : `Cash payment (₹${parsedDeduct} deducted, ₹${changeToReturn} change returned)`,
       },
     });
     setConfirmed(true);
     setTimeout(() => {
       setConfirmed(false);
-      setAmount('');
+      setCashHanded('');
+      setAmountToDeduct('');
+      setHoldChange(false);
       onClose();
-    }, 1000);
+    }, 1200);
   }
 
   return (
@@ -59,12 +79,12 @@ function PaymentModal({ customer, isOpen, onClose }) {
           <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-xs text-text-muted">Outstanding balance</span>
             <span className={`text-base font-bold tabular-nums ${customer?.overdue ? 'text-accent' : 'text-text-primary'}`}>
-              {fmt(customer?.outstanding)}
+              {fmt(outstanding)}
             </span>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-text-secondary mb-2 block">Payment Amount (₹)</label>
+            <label className="text-xs font-medium text-text-secondary mb-2 block">Cash Handed by Customer (₹)</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-light text-text-muted">₹</span>
               <input
@@ -73,29 +93,67 @@ function PaymentModal({ customer, isOpen, onClose }) {
                 inputMode="numeric"
                 className="w-full pl-9 pr-4 py-3.5 text-2xl font-bold text-text-primary bg-gray-50 border-2 border-border rounded-xl outline-none focus:border-accent focus:bg-white transition-all tabular-nums"
                 placeholder="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                value={cashHanded}
+                onChange={(e) => setCashHanded(e.target.value)}
               />
             </div>
           </div>
 
-          {parsedAmount > 0 && (
-            <div className="bg-gray-50 rounded-xl px-4 py-3">
-              <div className="flex justify-between text-xs text-text-muted mb-1">
-                <span>Remaining after payment</span>
+          {parsedCash > 0 && (
+            <>
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-2 block">Amount to Deduct from Khata (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-light text-text-muted">₹</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    className="w-full pl-9 pr-4 py-3 text-lg font-bold text-text-primary bg-gray-50 border-2 border-border rounded-xl outline-none focus:border-accent focus:bg-white transition-all tabular-nums"
+                    placeholder="0"
+                    value={amountToDeduct}
+                    onChange={(e) => setAmountToDeduct(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className={`text-lg font-bold tabular-nums ${remaining === 0 ? 'text-green-600' : 'text-text-primary'}`}>
-                {remaining === 0 ? '✓ Fully Settled' : fmt(remaining)}
+
+              {parsedCash > parsedDeduct && (
+                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-text-secondary font-medium">Change to return:</span>
+                    <span className="font-bold text-amber-700 text-sm">₹{changeToReturn.toFixed(0)}</span>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-text-primary">
+                    <input
+                      type="checkbox"
+                      checked={holdChange}
+                      onChange={(e) => setHoldChange(e.target.checked)}
+                      className="rounded border-[#d0c9be] text-accent focus:ring-accent"
+                    />
+                    <span>Hold change in Khata as advance?</span>
+                  </label>
+                </div>
+              )}
+
+              <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1 text-xs">
+                <div className="flex justify-between text-text-muted">
+                  <span>Total cash payment recorded:</span>
+                  <span className="font-bold font-mono text-text-primary">₹{finalPaymentAmount}</span>
+                </div>
+                <div className="flex justify-between text-text-muted pt-1 border-t border-gray-200">
+                  <span>Remaining after payment:</span>
+                  <span className={`font-bold font-mono ${remaining === 0 ? 'text-green-600' : 'text-text-primary'}`}>
+                    {remaining === 0 ? '✓ Fully Settled' : fmt(remaining)}
+                  </span>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <div className="flex gap-2">
             <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button
               onClick={handleSave}
-              disabled={!parsedAmount || parsedAmount <= 0}
+              disabled={finalPaymentAmount <= 0}
               className="btn-primary flex-1 justify-center disabled:opacity-40"
             >
               <Check size={14} />
@@ -108,7 +166,7 @@ function PaymentModal({ customer, isOpen, onClose }) {
           <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center">
             <Check size={28} className="text-green-600" />
           </div>
-          <div className="font-bold text-text-primary">{fmt(parsedAmount)} received!</div>
+          <div className="font-bold text-text-primary">₹{finalPaymentAmount} received!</div>
         </div>
       )}
     </Modal>
@@ -279,7 +337,7 @@ export default function CustomerPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
-  const [activeTab, setActiveTab] = useState('history');
+  const [activeTab, setActiveTab] = useState('ledger');
 
   const handleDownloadBill = () => {
     if (!customer) return;
@@ -576,14 +634,37 @@ export default function CustomerPage() {
     );
   }
 
-  const todayEntries = entries.filter((e) => e.date === TODAY);
+  const todayEntries = (entries || []).filter((e) => e.date === TODAY);
   const todayTotal = todayEntries.reduce((s, e) => s + e.amount, 0);
   const todayAddStr = todayEntries
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
     .map((e) => e.amount)
     .join(' + ');
 
-  const groupedHistory = groupByDate(entries.filter((e) => e.date !== TODAY));
+  const totalCredit = (entries || []).reduce((s, e) => s + e.amount, 0);
+  const totalPaid = (payments || []).reduce((s, p) => s + p.amount, 0);
+  const holdMoney = Math.max(0, totalPaid - totalCredit);
+
+  const ledger = useMemo(() => {
+    const safeEntries = entries || [];
+    const safePayments = payments || [];
+    const all = [
+      ...safeEntries.map((e) => ({ ...e, txnType: 'credit' })),
+      ...safePayments.map((p) => ({ ...p, txnType: 'payment' })),
+    ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    let balance = 0;
+    return all.map(t => {
+      if (t.txnType === 'credit') {
+        balance += t.amount;
+      } else {
+        balance -= t.amount;
+      }
+      return { ...t, runningBalance: balance };
+    }).reverse();
+  }, [entries, payments]);
+
+  const groupedHistory = groupByDate((entries || []).filter((e) => e.date !== TODAY));
 
   return (
     <div className="max-w-2xl mx-auto w-full">
@@ -623,19 +704,36 @@ export default function CustomerPage() {
         </div>
       </div>
 
-      {/* Outstanding balance hero */}
-      <div className={`mx-4 mt-4 px-5 py-4 rounded-2xl border ${customer.outstanding === 0 ? 'bg-green-50 border-green-100' : customer.overdue ? 'bg-accent/5 border-accent/20' : 'bg-gray-50 border-border'}`}>
-        <div className="text-xs font-medium text-text-muted mb-1">Outstanding Balance</div>
-        <div className={`text-4xl font-bold tabular-nums ${customer.outstanding === 0 ? 'text-green-600' : customer.overdue ? 'text-accent' : 'text-text-primary'}`}>
-          {fmt(customer.outstanding)}
+      {/* Balance stats grid */}
+      <div className="mx-4 mt-4 grid grid-cols-2 gap-4">
+        {/* Outstanding Dues */}
+        <div className={`px-5 py-4 rounded-2xl border ${customer.outstanding === 0 ? 'bg-green-50 border-green-100' : customer.overdue ? 'bg-accent/5 border-accent/20' : 'bg-gray-50 border-border'}`}>
+          <div className="text-xs font-medium text-text-muted mb-1">Outstanding Balance</div>
+          <div className={`text-3xl font-bold tabular-nums ${customer.outstanding === 0 ? 'text-green-600' : customer.overdue ? 'text-accent' : 'text-text-primary'}`}>
+            {fmt(customer.outstanding)}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            {customer.outstanding === 0
+              ? <Badge variant="paid">Fully Settled</Badge>
+              : customer.overdue
+                ? <Badge variant="overdue">Overdue</Badge>
+                : <Badge variant="gray">Active</Badge>
+            }
+          </div>
         </div>
-        <div className="flex items-center gap-2 mt-2">
-          {customer.outstanding === 0
-            ? <Badge variant="paid">Fully Settled</Badge>
-            : customer.overdue
-              ? <Badge variant="overdue">Overdue no payment in 30+ days</Badge>
-              : <Badge variant="gray">Active</Badge>
-          }
+
+        {/* Hold Money / Advance Balance */}
+        <div className={`px-5 py-4 rounded-2xl border ${holdMoney > 0 ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-border'}`}>
+          <div className="text-xs font-medium text-text-muted mb-1">Hold Money (Advance)</div>
+          <div className={`text-3xl font-bold tabular-nums ${holdMoney > 0 ? 'text-green-600' : 'text-text-primary'}`}>
+            {fmt(holdMoney)}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            {holdMoney > 0
+              ? <Badge variant="paid">Advance Available</Badge>
+              : <Badge variant="gray">No Advance</Badge>
+            }
+          </div>
         </div>
       </div>
 
@@ -711,7 +809,7 @@ export default function CustomerPage() {
 
       {/* Tabs */}
       <div className="mx-4 mt-5 flex gap-0 border-b border-border">
-        {[['history', 'Credit History'], ['payments', 'Payments']].map(([tab, label]) => (
+        {[['ledger', 'Ledger Book'], ['history', 'Credit History'], ['payments', 'Payments']].map(([tab, label]) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -725,6 +823,56 @@ export default function CustomerPage() {
           </button>
         ))}
       </div>
+
+      {/* Ledger Book Tab */}
+      {activeTab === 'ledger' && (
+        <div className="px-4 pt-4 pb-8">
+          {ledger.length === 0 ? (
+            <EmptyState title="No transactions yet" subtitle="Add credits or received payments to populate the ledger." />
+          ) : (
+            <div className="card overflow-hidden bg-white border border-border rounded-xl">
+              <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-gray-50 border-b border-border text-[10px] font-black text-text-secondary uppercase tracking-wider">
+                <div className="col-span-3">Date/Time</div>
+                <div className="col-span-5">Details</div>
+                <div className="col-span-2 text-right font-bold">Amount</div>
+                <div className="col-span-2 text-right font-bold">Balance</div>
+              </div>
+              <div className="divide-y divide-border">
+                {ledger.map((t) => {
+                  const isCredit = t.txnType === 'credit';
+                  return (
+                    <div key={t.id} className="grid grid-cols-12 gap-2 px-4 py-3 row-hover items-center text-xs">
+                      {/* Date */}
+                      <div className="col-span-3">
+                        <div className="font-semibold text-text-primary">{fmtDate(t.date)}</div>
+                        <div className="text-[9px] text-text-muted">{fmtTime(t.timestamp)}</div>
+                      </div>
+                      {/* Details */}
+                      <div className="col-span-5">
+                        <div className="font-bold text-text-primary capitalize">{t.txnType === 'credit' ? 'Udhari (Credit)' : 'Received (Payment)'}</div>
+                        <div className="text-[10px] text-text-muted truncate" title={t.note}>{t.note || (isCredit ? 'Credit Entry' : 'Payment Received')}</div>
+                      </div>
+                      {/* Amount */}
+                      <div className={`col-span-2 text-right font-black tabular-nums ${isCredit ? 'text-accent' : 'text-green-600'}`}>
+                        {isCredit ? '+' : '-'}{t.amount}
+                      </div>
+                      {/* Running Balance */}
+                      <div className="col-span-2 text-right">
+                        <div className="font-bold tabular-nums text-text-primary">
+                          ₹{Math.abs(t.runningBalance)}
+                        </div>
+                        <div className={`text-[9px] font-bold uppercase tracking-wider ${t.runningBalance > 0 ? 'text-accent' : t.runningBalance < 0 ? 'text-green-600' : 'text-text-muted'}`}>
+                          {t.runningBalance > 0 ? 'Due' : t.runningBalance < 0 ? 'Hold' : 'Settled'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Credit History Tab */}
       {activeTab === 'history' && (
