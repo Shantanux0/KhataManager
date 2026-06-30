@@ -229,7 +229,6 @@ export default function CustomerPage() {
           }
           .page {
             width: 100%;
-            min-height: 250mm;
             page-break-after: always;
             box-sizing: border-box;
             position: relative;
