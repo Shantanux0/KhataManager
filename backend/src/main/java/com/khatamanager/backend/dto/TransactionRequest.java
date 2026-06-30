@@ -8,4 +8,5 @@ public class TransactionRequest {
     private Double amount;
     private String date;
     private String note;
+    private String itemsJson;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, BookOpen, Users, BarChart3, ChevronLeft, ChevronRight, Maximize2, Minimize2, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookOpen, Users, BarChart3, ChevronLeft, ChevronRight, Maximize2, Minimize2, LogOut, Settings, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/items', label: 'Items Price', icon: ShoppingBag },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -15,6 +15,7 @@ import Analytics from './pages/Analytics';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Settings from './pages/Settings';
+import ItemsInventory from './pages/ItemsInventory';
 
 export default function App() {
   return (
@@ -49,6 +50,9 @@ export default function App() {
 
             {/* Shop Settings */}
             <Route path="settings" element={<Settings />} />
+
+            {/* Items Inventory */}
+            <Route path="items" element={<ItemsInventory />} />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -39,4 +39,7 @@ public class Transaction {
     private String note;
     
     private LocalDateTime timestamp = LocalDateTime.now();
+
+    @Column(columnDefinition = "TEXT")
+    private String itemsJson;
 }

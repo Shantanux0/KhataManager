@@ -52,6 +52,7 @@ public class TransactionController {
         tx.setType("credit");
         tx.setDate(request.getDate());
         tx.setNote(request.getNote());
+        tx.setItemsJson(request.getItemsJson());
         
         return ResponseEntity.ok(transactionRepository.save(tx));
     }
@@ -76,6 +77,7 @@ public class TransactionController {
         tx.setType("payment");
         tx.setDate(request.getDate());
         tx.setNote(request.getNote());
+        tx.setItemsJson(request.getItemsJson());
         
         return ResponseEntity.ok(transactionRepository.save(tx));
     }
