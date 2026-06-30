@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Phone, MapPin, FileText, Edit3, Check, X, IndianRupee, Download } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, FileText, Edit3, Check, X, IndianRupee, Download, Plus } from 'lucide-react';
 import { useCustomer } from '../hooks/useCustomers';
 import { useEntriesForCustomer, usePaymentsForCustomer } from '../hooks/useEntries';
 import { useKhata } from '../context/KhataContext';
@@ -115,6 +115,104 @@ function PaymentModal({ customer, isOpen, onClose }) {
   );
 }
 
+function AddCreditModal({ customer, isOpen, onClose }) {
+  const { dispatch } = useKhata();
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('Monthly Credit');
+  const [date, setDate] = useState(TODAY);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const parsedAmount = parseInt(amount, 10) || 0;
+
+  function handleSave() {
+    if (!parsedAmount || parsedAmount <= 0) return;
+    dispatch({
+      type: 'ADD_ENTRY',
+      payload: {
+        id: `e${Date.now()}`,
+        customerId: customer.id,
+        amount: parsedAmount,
+        date: date,
+        timestamp: new Date().toISOString(),
+        type: 'credit',
+        note: note.trim(),
+      },
+    });
+    setConfirmed(true);
+    setTimeout(() => {
+      setConfirmed(false);
+      setAmount('');
+      setNote('Monthly Credit');
+      onClose();
+    }, 1000);
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Credit (Udhari)" size="sm">
+      {!confirmed ? (
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-2 block">Amount (₹)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-light text-text-muted">₹</span>
+              <input
+                autoFocus
+                type="number"
+                inputMode="numeric"
+                className="w-full pl-9 pr-4 py-3.5 text-2xl font-bold text-text-primary bg-gray-50 border-2 border-border rounded-xl outline-none focus:border-accent focus:bg-white transition-all tabular-nums"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-1.5 block">Date</label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-gray-50 focus:bg-white focus:border-accent outline-none text-sm text-text-primary font-medium"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-1.5 block">Description / Note</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-border rounded-xl bg-gray-50 focus:bg-white focus:border-accent outline-none text-sm text-text-primary"
+              placeholder="e.g. Monthly Credit"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button
+              onClick={handleSave}
+              disabled={!parsedAmount || parsedAmount <= 0}
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-black text-white bg-accent rounded-xl hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-35"
+            >
+              <Check size={14} />
+              Confirm Credit
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center py-6 gap-3">
+          <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center">
+            <Check size={28} className="text-green-600" />
+          </div>
+          <div className="font-bold text-text-primary">₹{parsedAmount} Credit added!</div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function EditCustomerModal({ customer, isOpen, onClose }) {
   const { dispatch } = useKhata();
   const [form, setForm] = useState({ ...customer });
@@ -177,6 +275,7 @@ export default function CustomerPage() {
   const { user } = useAuth();
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
@@ -511,7 +610,12 @@ export default function CustomerPage() {
           <button onClick={() => { setNotesValue(customer.notes || ''); setShowEditModal(true); }} className="btn-ghost p-2">
             <Edit3 size={15} />
           </button>
-          <button onClick={() => setShowPaymentModal(true)} className="btn-primary py-2">
+          <button onClick={() => setShowCreditModal(true)} className="btn-secondary py-2 border border-accent/20 text-accent hover:bg-accent/5 flex items-center gap-1.5 font-bold">
+            <Plus size={14} />
+            <span className="hidden sm:inline">Add Credit</span>
+            <span className="sm:hidden">Credit</span>
+          </button>
+          <button onClick={() => setShowPaymentModal(true)} className="btn-primary py-2 flex items-center gap-1.5">
             <IndianRupee size={14} />
             <span className="hidden sm:inline">Receive Payment</span>
             <span className="sm:hidden">Pay</span>
@@ -711,6 +815,7 @@ export default function CustomerPage() {
 
       {/* Modals */}
       <PaymentModal customer={customer} isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} />
+      <AddCreditModal customer={customer} isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} />
       <EditCustomerModal customer={customer} isOpen={showEditModal} onClose={() => setShowEditModal(false)} />
     </div>
   );
