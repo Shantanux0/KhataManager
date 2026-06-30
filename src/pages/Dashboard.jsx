@@ -12,7 +12,8 @@ import { useAllTransactions } from '../hooks/useEntries';
 import { useCustomers } from '../hooks/useCustomers';
 import { useKhata } from '../context/KhataContext';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 function CustomTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {
@@ -52,7 +53,7 @@ export default function Dashboard() {
 
   // Recent transactions (last 20)
   const recentActivity = allTransactions.slice(0, 20).map((txn) => {
-    const customer = customers.find((c) => c.id === txn.customerId);
+    const customer = customers.find((c) => String(c.id) === String(txn.customerId));
     return { ...txn, customerName: customer?.name || 'Unknown' };
   });
 

@@ -19,7 +19,7 @@ export function useEntriesForCustomer(customerId) {
   return useMemo(
     () =>
       state.entries
-        .filter((e) => e.customerId === customerId)
+        .filter((e) => String(e.customerId) === String(customerId))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
     [state.entries, customerId],
   );
@@ -30,7 +30,7 @@ export function usePaymentsForCustomer(customerId) {
   return useMemo(
     () =>
       state.payments
-        .filter((p) => p.customerId === customerId)
+        .filter((p) => String(p.customerId) === String(customerId))
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
     [state.payments, customerId],
   );

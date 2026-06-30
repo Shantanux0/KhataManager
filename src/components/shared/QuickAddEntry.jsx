@@ -4,7 +4,8 @@ import { useKhata } from '../../context/KhataContext';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Modal, fmt } from '../ui/index';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../../utils/dateUtils';
+const TODAY = getTodayIST();
 
 // Extension point: add future integrations here (voice, OCR, WhatsApp)
 // e.g. onEntryAdded(entry) will be called after every successful save
@@ -104,7 +105,7 @@ export default function QuickAddEntry({ isOpen, onClose }) {
     }, 900);
   }
 
-  function handleAddNewCustomer() {
+  async function handleAddNewCustomer() {
     if (!newCustomer.name.trim()) return;
     const customer = {
       id: `c${Date.now()}`,
@@ -115,10 +116,12 @@ export default function QuickAddEntry({ isOpen, onClose }) {
       paymentCycle: 'monthly',
       createdAt: TODAY,
     };
-    dispatch({ type: 'ADD_CUSTOMER', payload: customer });
-    setSelectedCustomer({ ...customer, outstanding: 0 });
-    setShowNewCustomerForm(false);
-    setStep(2);
+    const savedCustomer = await dispatch({ type: 'ADD_CUSTOMER', payload: customer });
+    if (savedCustomer) {
+      setSelectedCustomer({ ...savedCustomer, outstanding: 0 });
+      setShowNewCustomerForm(false);
+      setStep(2);
+    }
   }
 
   function handleKeyDown(e) {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,9 +21,12 @@ export default function Login() {
     
     try {
       await login(email, password);
+      toast.success('Signed in successfully!');
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Failed to log in');
+      const msg = err.message || 'Failed to log in';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

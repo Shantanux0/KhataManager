@@ -25,7 +25,7 @@ export default function DailyPage() {
   const totalPayments = payments.reduce((s, p) => s + p.amount, 0);
 
   const customerRows = Object.entries(byCustomer).map(([customerId, dayEntries]) => {
-    const customer = customers.find((c) => c.id === customerId);
+    const customer = customers.find((c) => String(c.id) === String(customerId));
     const total = dayEntries.reduce((s, e) => s + e.amount, 0);
     const addStr = dayEntries
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
@@ -128,7 +128,7 @@ export default function DailyPage() {
           <div className="section-title mb-2">Payments Received</div>
           <div className="card divide-y divide-border overflow-hidden">
             {payments.map((p) => {
-              const customer = customers.find((c) => c.id === p.customerId);
+              const customer = customers.find((c) => String(c.id) === String(p.customerId));
               return (
                 <Link
                   key={p.id}

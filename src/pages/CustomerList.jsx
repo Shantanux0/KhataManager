@@ -5,7 +5,8 @@ import { useCustomers } from '../hooks/useCustomers';
 import { useKhata } from '../context/KhataContext';
 import { Modal, Badge, fmt, fmtDate, EmptyState } from '../components/ui/index';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 export default function CustomerList() {
   const customers = useCustomers();

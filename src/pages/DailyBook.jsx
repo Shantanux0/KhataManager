@@ -5,7 +5,8 @@ import { useKhata } from '../context/KhataContext';
 import { useCustomers } from '../hooks/useCustomers';
 import { fmt, fmtDate, fmtTime } from '../components/ui/index';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 function dateStr(date) {
   return date.toISOString().split('T')[0];
@@ -90,7 +91,7 @@ function QuickEntrySidebar({ currentDateStr, onClose, isMobile, preSelectedCusto
     setTimeout(() => amountRef.current?.focus(), 80);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!nameInput.trim() || !parsedAmount) return;
 
     let customerId;
@@ -108,8 +109,9 @@ function QuickEntrySidebar({ currentDateStr, onClose, isMobile, preSelectedCusto
         paymentCycle: 'monthly',
         createdAt: currentDateStr,
       };
-      dispatch({ type: 'ADD_CUSTOMER', payload: newCustomer });
-      customerId = newCustomer.id;
+      const savedCustomer = await dispatch({ type: 'ADD_CUSTOMER', payload: newCustomer });
+      if (savedCustomer) customerId = savedCustomer.id;
+      else customerId = newCustomer.id;
     }
 
     const entry = {
@@ -121,7 +123,7 @@ function QuickEntrySidebar({ currentDateStr, onClose, isMobile, preSelectedCusto
       type: 'credit',
       note: '',
     };
-    dispatch({ type: 'ADD_ENTRY', payload: entry });
+    await dispatch({ type: 'ADD_ENTRY', payload: entry });
 
     setSaved({ name: nameInput.trim(), amount: parsedAmount });
     setTimeout(() => {
@@ -595,7 +597,7 @@ export default function DailyBook() {
 
   const customerRows = Object.entries(byCustomer)
     .map(([customerId, cEntries]) => {
-      const customer = customers.find((c) => c.id === customerId);
+      const customer = customers.find((c) => String(c.id) === String(customerId));
       const sorted = [...cEntries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       const total = sorted.reduce((s, e) => s + e.amount, 0);
       return { customerId, customer, total, sorted };
@@ -773,7 +775,7 @@ export default function DailyBook() {
                 <div className="col-span-5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider text-right">Amount</div>
               </div>
               {dayPayments.map((p) => {
-                const customer = customers.find((c) => c.id === p.customerId);
+                const customer = customers.find((c) => String(c.id) === String(p.customerId));
                 return (
                   <Link to={`/customers/${p.customerId}`} key={p.id}
                     className="grid grid-cols-12 px-4 py-3 border-b border-[#ddd6cb] last:border-b-0 hover:bg-[#f0ebe2] transition-colors">

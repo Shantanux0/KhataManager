@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useKhata } from '../context/KhataContext';
 import { getDailySummaries, getOutstandingByCustomer } from '../services/khataService';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 export function useAnalytics() {
   const { state } = useKhata();
@@ -62,7 +63,7 @@ export function useAnalytics() {
     return outstandingByCustomer
       .map((o) => ({
         ...o,
-        customer: customers.find((c) => c.id === o.customerId),
+        customer: customers.find((c) => String(c.id) === String(o.customerId)),
       }))
       .filter((o) => o.customer && o.outstanding > 0)
       .sort((a, b) => b.outstanding - a.outstanding);
@@ -74,7 +75,7 @@ export function useAnalytics() {
       creditByCustomer[e.customerId] = (creditByCustomer[e.customerId] || 0) + e.amount;
     });
     const maxId = Object.entries(creditByCustomer).sort(([, a], [, b]) => b - a)[0]?.[0];
-    return maxId ? customers.find((c) => c.id === maxId) : null;
+    return maxId ? customers.find((c) => String(c.id) === String(maxId)) : null;
   }, [entries, customers]);
 
   return {

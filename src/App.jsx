@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { KhataProvider } from './context/KhataContext';
 import AppShell from './components/layout/AppShell';
@@ -17,6 +18,7 @@ import Register from './pages/auth/Register';
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" />
       <KhataProvider>
       <BrowserRouter>
         <Routes>

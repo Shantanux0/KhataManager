@@ -7,7 +7,8 @@ import { useAnalytics } from '../hooks/useAnalytics';
 import { StatCard, fmt, fmtDate, fmtShortDate } from '../components/ui/index';
 import { TrendingUp, Calendar, Users, IndianRupee, Star } from 'lucide-react';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 function CustomTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {

@@ -40,7 +40,7 @@ function khataReducer(state, action) {
       return {
         ...state,
         customers: state.customers.map((c) =>
-          c.id === action.payload.id ? { ...c, ...action.payload } : c,
+          String(c.id) === String(action.payload.id) ? { ...c, ...action.payload } : c,
         ),
       };
     }
@@ -70,8 +70,12 @@ export function KhataProvider({ children }) {
         
         if (custRes.ok && entRes.ok && payRes.ok) {
           const customers = await custRes.json();
-          const entries = await entRes.json();
-          const payments = await payRes.json();
+          let entries = await entRes.json();
+          let payments = await payRes.json();
+
+          entries = entries.map(e => ({ ...e, customerId: e.customer?.id || e.customerId }));
+          payments = payments.map(p => ({ ...p, customerId: p.customer?.id || p.customerId }));
+
           dispatch({ type: 'SET_DATA', payload: { customers, entries, payments } });
         }
       } catch (e) {
@@ -93,16 +97,15 @@ export function KhataProvider({ children }) {
     
     try {
       if (action.type === 'ADD_CUSTOMER') {
+        const { id, ...payloadWithoutId } = action.payload;
         const res = await fetch('http://localhost:8082/api/customers', {
           method: 'POST',
           headers,
-          body: JSON.stringify(action.payload)
+          body: JSON.stringify(payloadWithoutId)
         });
         if (res.ok) {
           const savedCustomer = await res.json();
           dispatch({ type: 'ADD_CUSTOMER', payload: savedCustomer });
-          // If this was initiated by ADD_ENTRY or ADD_PAYMENT, we need the new ID.
-          // For simplicity, we just dispatch and return the new ID to callers if they await.
           return savedCustomer;
         }
       } else if (action.type === 'UPDATE_CUSTOMER') {
@@ -116,24 +119,30 @@ export function KhataProvider({ children }) {
           dispatch({ type: 'UPDATE_CUSTOMER', payload: updatedCustomer });
         }
       } else if (action.type === 'ADD_ENTRY') {
+        const { id, ...payloadWithoutId } = action.payload;
         const res = await fetch('http://localhost:8082/api/entries', {
           method: 'POST',
           headers,
-          body: JSON.stringify(action.payload)
+          body: JSON.stringify(payloadWithoutId)
         });
         if (res.ok) {
           const savedEntry = await res.json();
+          savedEntry.customerId = savedEntry.customer?.id || savedEntry.customerId;
           dispatch({ type: 'ADD_ENTRY', payload: savedEntry });
+          return savedEntry;
         }
       } else if (action.type === 'ADD_PAYMENT') {
+        const { id, ...payloadWithoutId } = action.payload;
         const res = await fetch('http://localhost:8082/api/payments', {
           method: 'POST',
           headers,
-          body: JSON.stringify(action.payload)
+          body: JSON.stringify(payloadWithoutId)
         });
         if (res.ok) {
           const savedPayment = await res.json();
+          savedPayment.customerId = savedPayment.customer?.id || savedPayment.customerId;
           dispatch({ type: 'ADD_PAYMENT', payload: savedPayment });
+          return savedPayment;
         }
       } else {
         dispatch(action);

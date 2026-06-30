@@ -1,5 +1,6 @@
 // ─── Smart Digital Khata — Mock Data ───────────────────────────────────────
 // All data is stored here. khataService.js is the ONLY consumer.
+import { getTodayIST } from '../utils/dateUtils';
 // Replace this file + service with real API calls when backend is ready.
 
 export const CUSTOMERS = [
@@ -167,8 +168,7 @@ export const CUSTOMERS = [
   },
 ];
 
-// ─── Generate entries for last 35 days ────────────────────────────────────
-const today = new Date('2026-06-29');
+const today = new Date(getTodayIST());
 
 function dateStr(daysAgo) {
   const d = new Date(today);

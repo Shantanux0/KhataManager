@@ -6,7 +6,8 @@ import { useEntriesForCustomer, usePaymentsForCustomer } from '../hooks/useEntri
 import { useKhata } from '../context/KhataContext';
 import { Modal, Badge, fmt, fmtDate, fmtTime, EmptyState } from '../components/ui/index';
 
-const TODAY = '2026-06-29';
+import { getTodayIST } from '../utils/dateUtils';
+const TODAY = getTodayIST();
 
 // Group entries by date
 function groupByDate(entries) {

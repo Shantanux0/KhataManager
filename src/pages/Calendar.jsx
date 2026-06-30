@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { getTodayIST } from '../utils/dateUtils';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
@@ -27,7 +28,7 @@ export default function Calendar() {
   const { state } = useKhata();
   const { entries, payments } = state;
 
-  const todayDate = new Date('2026-06-29');
+  const todayDate = new Date(getTodayIST());
   const [viewYear, setViewYear] = useState(todayDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(todayDate.getMonth());
 

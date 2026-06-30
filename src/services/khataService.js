@@ -4,6 +4,7 @@
 // All other code imports from this service, not from mockData directly.
 
 import { CUSTOMERS, ENTRIES, PAYMENTS } from '../data/mockData';
+import { getTodayIST } from '../utils/dateUtils';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 export function getCustomers() {
@@ -49,8 +50,10 @@ export function getTotalCreditForCustomer(customerId, entries, payments) {
   return Math.max(0, totalCredit - totalPaid);
 }
 
+
+
 export function getDailySummaries(entries, payments, days = 35) {
-  const today = new Date('2026-06-29');
+  const today = new Date(getTodayIST());
   const summaries = [];
   for (let i = 0; i < days; i++) {
     const d = new Date(today);
@@ -102,12 +105,12 @@ export function isOverdue(customerId, entries, payments, thresholdDays = 30) {
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
     if (!firstEntry) return false;
     const daysSince = Math.floor(
-      (new Date('2026-06-29') - new Date(firstEntry.date)) / (1000 * 60 * 60 * 24),
+      (new Date(getTodayIST()) - new Date(firstEntry.date)) / (1000 * 60 * 60 * 24),
     );
     return daysSince > thresholdDays;
   }
   const daysSince = Math.floor(
-    (new Date('2026-06-29') - new Date(lastPayment.date)) / (1000 * 60 * 60 * 24),
+    (new Date(getTodayIST()) - new Date(lastPayment.date)) / (1000 * 60 * 60 * 24),
   );
   return daysSince > thresholdDays;
 }

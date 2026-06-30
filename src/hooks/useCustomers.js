@@ -24,5 +24,5 @@ export function useCustomers() {
 
 export function useCustomer(id) {
   const customers = useCustomers();
-  return useMemo(() => customers.find((c) => c.id === id) || null, [customers, id]);
+  return useMemo(() => customers.find((c) => String(c.id) === String(id)) || null, [customers, id]);
 }

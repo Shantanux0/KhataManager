@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -22,9 +23,12 @@ export default function Register() {
     
     try {
       await register(name, shopName, email, password);
+      toast.success('Account created successfully!');
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Failed to create an account');
+      const msg = err.message || 'Failed to create an account';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
