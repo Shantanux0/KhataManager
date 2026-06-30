@@ -1,0 +1,16 @@
+{
+  "short_name": "khataManager",
+  "name": "khataManager — Smart Digital Khata",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FDFAF5",
+  "theme_color": "#C0392B",
+  "display": "standalone",
+  "orientation": "any"
+}
