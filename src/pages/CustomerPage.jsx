@@ -214,22 +214,28 @@ export default function CustomerPage() {
         <title>Bill Statement - ${customerName}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
           body {
             font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #ffffff;
             color: #1a1a1a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .page {
-            width: 210mm;
-            height: 297mm;
-            padding: 20mm 15mm;
-            box-sizing: border-box;
+            width: 100%;
+            min-height: 250mm;
             page-break-after: always;
+            box-sizing: border-box;
             position: relative;
             display: flex;
             flex-direction: column;
+            padding: 5mm;
           }
           .page:last-of-type {
             page-break-after: avoid;
@@ -342,7 +348,7 @@ export default function CustomerPage() {
           }
           .page-num {
             position: absolute;
-            bottom: 15mm;
+            bottom: 5mm;
             left: 0;
             right: 0;
             text-align: center;
@@ -448,9 +454,11 @@ export default function CustomerPage() {
     `;
 
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '1024px';
+    iframe.style.height = '1448px';
     iframe.style.border = 'none';
     document.body.appendChild(iframe);
 
