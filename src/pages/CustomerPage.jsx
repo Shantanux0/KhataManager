@@ -734,47 +734,55 @@ export default function CustomerPage() {
           ) : (
             <>
               {todayEntries.length > 0 && (
-                <Link to={`/daily/${TODAY}`} className="card block overflow-hidden hover:border-gray-300 transition-colors">
-                  <div className="px-4 py-2 bg-accent/5 border-b border-accent/10">
+                <div className="card block overflow-hidden">
+                  <div className="px-4 py-2 bg-accent/5 border-b border-accent/10 flex justify-between items-center">
                     <span className="text-xs font-semibold text-accent">Today</span>
+                    <span className="text-sm font-bold text-accent tabular-nums">Total = {fmt(todayTotal)}</span>
                   </div>
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="flex flex-wrap gap-x-2 gap-y-1 items-center select-none font-mono text-xs">
-                      {todayEntries
-                        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                        .map((e, idx) => (
-                          <span key={e.id} className="whitespace-nowrap">
-                            <span className="font-semibold text-text-primary">₹{e.amount}</span>
-                            <span className="text-[10px] text-text-muted ml-0.5 font-sans">({fmtTime(e.timestamp)})</span>
-                            {idx < todayEntries.length - 1 && <span className="text-text-muted mx-1.5 font-sans">+</span>}
-                          </span>
-                        ))}
-                    </div>
-                    <div className="text-sm font-bold text-accent tabular-nums shrink-0 ml-4">= {fmt(todayTotal)}</div>
+                  <div className="px-4 py-3 flex flex-col gap-2">
+                    {todayEntries
+                      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                      .map((e) => (
+                        <div key={e.id} className="border-b border-gray-100 last:border-b-0 pb-1.5 last:pb-0 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-text-primary">₹{e.amount}</span>
+                            <span className="text-[10px] text-text-muted">({fmtTime(e.timestamp)})</span>
+                          </div>
+                          {e.note && (
+                            <span className="px-2 py-0.5 text-[10px] bg-gray-100 text-text-secondary rounded-full font-medium max-w-[150px] truncate">
+                              {e.note}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                   </div>
-                </Link>
+                </div>
               )}
               {groupedHistory.map(({ date, entries: dayEntries }) => {
                 const total = dayEntries.reduce((s, e) => s + e.amount, 0);
                 const sorted = [...dayEntries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 return (
-                  <Link to={`/daily/${date}`} key={date} className="card block overflow-hidden hover:border-gray-300 transition-colors">
-                    <div className="px-4 py-2 bg-gray-50 border-b border-border">
+                  <div key={date} className="card block overflow-hidden">
+                    <div className="px-4 py-2 bg-gray-50 border-b border-border flex justify-between items-center">
                       <span className="text-xs font-semibold text-text-muted">{fmtDate(date)}</span>
+                      <span className="text-sm font-bold text-text-primary tabular-nums">Total = {fmt(total)}</span>
                     </div>
-                    <div className="px-4 py-3 flex items-center justify-between">
-                      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center select-none font-mono text-xs">
-                        {sorted.map((e, idx) => (
-                          <span key={e.id} className="whitespace-nowrap">
-                            <span className="font-semibold text-text-primary">₹{e.amount}</span>
-                            <span className="text-[10px] text-text-muted ml-0.5 font-sans">({fmtTime(e.timestamp)})</span>
-                            {idx < sorted.length - 1 && <span className="text-text-muted mx-1.5 font-sans">+</span>}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="text-sm font-bold text-text-primary tabular-nums shrink-0 ml-4">= {fmt(total)}</div>
+                    <div className="px-4 py-3 flex flex-col gap-2">
+                      {sorted.map((e) => (
+                        <div key={e.id} className="border-b border-gray-100 last:border-b-0 pb-1.5 last:pb-0 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-text-primary">₹{e.amount}</span>
+                            <span className="text-[10px] text-text-muted">({fmtTime(e.timestamp)})</span>
+                          </div>
+                          {e.note && (
+                            <span className="px-2 py-0.5 text-[10px] bg-gray-100 text-text-secondary rounded-full font-medium max-w-[150px] truncate">
+                              {e.note}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </>
