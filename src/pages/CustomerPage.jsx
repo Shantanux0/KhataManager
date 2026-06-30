@@ -449,29 +449,24 @@ export default function CustomerPage() {
     });
 
     htmlContent += `
+      <script>
+        window.onload = function() {
+          window.focus();
+          window.print();
+          setTimeout(function() {
+            window.close();
+          }, 1000);
+        };
+      </script>
       </body>
       </html>
     `;
 
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.style.width = '1024px';
-    iframe.style.height = '1448px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlContent);
-    doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      document.body.removeChild(iframe);
-    }, 500);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    }
   };
 
   if (!customer) {
