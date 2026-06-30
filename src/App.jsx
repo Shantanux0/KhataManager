@@ -14,6 +14,7 @@ import CustomerPage from './pages/CustomerPage';
 import Analytics from './pages/Analytics';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -45,6 +46,9 @@ export default function App() {
 
             {/* Analytics */}
             <Route path="analytics" element={<Analytics />} />
+
+            {/* Shop Settings */}
+            <Route path="settings" element={<Settings />} />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, BookOpen, CalendarDays, Plus, Check, Search, X, UserPlus, PanelRightOpen, PanelRightClose, IndianRupee } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, CalendarDays, Plus, Check, Search, X, UserPlus, PanelRightOpen, PanelRightClose, IndianRupee, Trash2, Download, Square, CheckSquare } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { useCustomers } from '../hooks/useCustomers';
+import { useAuth } from '../context/AuthContext';
 import { fmt, fmtDate, fmtTime } from '../components/ui/index';
 
 import { getTodayIST } from '../utils/dateUtils';
@@ -571,7 +572,8 @@ function QuickPaidSection({ currentDateStr }) {
 
 // ── Main DailyBook Page ──────────────────────────────────────────────────────
 export default function DailyBook() {
-  const { state } = useKhata();
+  const { state, dispatch } = useKhata();
+  const { user } = useAuth();
   const { entries, payments } = state;
   const customers = useCustomers();
   const navigate = useNavigate();
@@ -581,13 +583,83 @@ export default function DailyBook() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [preSelectedCustomer, setPreSelectedCustomer] = useState(null);
 
+  // Delete & Select states
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'all' or 'selected'
+
   const currentDateStr = dateStr(currentDate);
   const todayObj = new Date(TODAY);
   const isToday = currentDateStr === TODAY;
   const isFuture = currentDate > todayObj;
 
+  // Clear selections when date changes
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentDateStr]);
+
   const dayEntries = entries.filter((e) => e.date === currentDateStr);
   const dayPayments = payments.filter((p) => p.date === currentDateStr);
+
+  const allDailyIds = useMemo(() => [
+    ...dayEntries.map(e => e.id),
+    ...dayPayments.map(p => p.id)
+  ], [dayEntries, dayPayments]);
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === allDailyIds.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allDailyIds);
+    }
+  };
+
+  const handleSelectId = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectCustomer = (customerId, customerEntries) => {
+    const custEntryIds = customerEntries.map(e => e.id);
+    const allSelected = custEntryIds.every(id => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !custEntryIds.includes(id)));
+    } else {
+      setSelectedIds(prev => {
+        const next = [...prev];
+        custEntryIds.forEach(id => {
+          if (!next.includes(id)) next.push(id);
+        });
+        return next;
+      });
+    }
+  };
+
+  const isCustomerSelected = (customerEntries) => {
+    if (customerEntries.length === 0) return false;
+    return customerEntries.every(e => selectedIds.includes(e.id));
+  };
+
+  const isCustomerPartiallySelected = (customerEntries) => {
+    const custEntryIds = customerEntries.map(e => e.id);
+    const count = custEntryIds.filter(id => selectedIds.includes(id)).length;
+    return count > 0 && count < custEntryIds.length;
+  };
+
+  const handleDeleteConfirm = async () => {
+    setShowConfirmModal(false);
+    if (confirmAction === 'all') {
+      await dispatch({ type: 'DELETE_TRANSACTIONS', payload: allDailyIds });
+      setSelectedIds([]);
+    } else if (confirmAction === 'selected' && selectedIds.length > 0) {
+      await dispatch({ type: 'DELETE_TRANSACTIONS', payload: selectedIds });
+      setSelectedIds([]);
+    }
+    setConfirmAction(null);
+  };
+
+
 
   // Group entries by customer
   const byCustomer = {};
@@ -688,6 +760,55 @@ export default function DailyBook() {
           </div>
         </div>
 
+        {/* Bulk Action Panel */}
+        {allDailyIds.length > 0 && (
+          <div className="mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 bg-[#f0ebe2] border border-[#d0c9be] rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSelectAll}
+                className="flex items-center gap-1.5 text-xs font-bold text-[#4a4035] hover:text-accent transition-colors"
+              >
+                {selectedIds.length === allDailyIds.length ? (
+                  <CheckSquare size={16} className="text-accent" />
+                ) : (
+                  <Square size={16} />
+                )}
+                Select All ({allDailyIds.length})
+              </button>
+              {selectedIds.length > 0 && (
+                <span className="text-[10px] text-accent font-extrabold bg-white border border-accent/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  {selectedIds.length} Selected
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {selectedIds.length > 0 && (
+                <button
+                  onClick={() => {
+                    setConfirmAction('selected');
+                    setShowConfirmModal(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors"
+                >
+                  <Trash2 size={13} />
+                  Delete Selected
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setConfirmAction('all');
+                  setShowConfirmModal(true);
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors"
+              >
+                <Trash2 size={13} />
+                Delete All Records
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Ledger table */}
         <div className="mx-4 border-x border-b border-[#d0c9be] bg-[#FDFAF5] overflow-hidden rounded-b-xl">
           {customerRows.length === 0 ? (
@@ -700,65 +821,118 @@ export default function DailyBook() {
             <>
               {/* Table header */}
               <div className="grid grid-cols-12 border-b-2 border-[#c8bfb0] bg-[#f0ebe2]">
-                <div className="col-span-1 px-3 py-2.5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider border-r border-[#d0c9be]">#</div>
+                <div className="col-span-1 px-3 py-2.5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider border-r border-[#d0c9be] flex items-center justify-center">
+                  <button onClick={handleSelectAll} className="p-0.5 text-[#7a6e5e] hover:text-accent">
+                    {selectedIds.length === allDailyIds.length ? (
+                      <CheckSquare size={14} className="text-accent" />
+                    ) : (
+                      <Square size={14} />
+                    )}
+                  </button>
+                </div>
                 <div className="col-span-4 px-3 py-2.5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider border-r border-[#d0c9be]">Customer</div>
                 <div className="col-span-5 px-3 py-2.5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider border-r border-[#d0c9be]">Entries (₹)</div>
                 <div className="col-span-2 px-3 py-2.5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider text-right">Total</div>
               </div>
 
-              {customerRows.map(({ customerId, customer, total, sorted }, idx) => (
-                <div
-                  key={customerId}
-                  onClick={() => {
-                    if (customer) {
-                      setPreSelectedCustomer(customer);
-                      // Force sidebar open on desktop, and open drawer on mobile/tablet
-                      setSidebarOpen(true);
-                      setMobilePanelOpen(true);
-                    }
-                  }}
-                  className={`grid grid-cols-12 border-b border-[#ddd6cb] group transition-colors hover:bg-[#f0ebe2] cursor-pointer ${idx % 2 === 0 ? 'bg-[#FDFAF5]' : 'bg-[#F7F3EC]'}`}
-                >
-                  <div className="col-span-1 px-3 py-3.5 border-r border-[#d0c9be] flex items-center">
-                    <span className="text-xs font-bold text-[#a09888]">{idx + 1}</span>
-                  </div>
-                  <div className="col-span-4 px-3 py-3.5 border-r border-[#d0c9be] flex flex-col justify-center">
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/customers/${customerId}`);
-                      }}
-                      className="text-sm font-bold text-[#1a1a1a] leading-tight hover:text-accent transition-colors hover:underline cursor-pointer"
-                    >
-                      {customer?.name || 'Unknown'}
+              {customerRows.map(({ customerId, customer, total, sorted }, idx) => {
+                const isSelected = isCustomerSelected(sorted);
+                const isPartial = isCustomerPartiallySelected(sorted);
+                return (
+                  <div
+                    key={customerId}
+                    onClick={() => {
+                      if (customer) {
+                        setPreSelectedCustomer(customer);
+                        setSidebarOpen(true);
+                        setMobilePanelOpen(true);
+                      }
+                    }}
+                    className={`grid grid-cols-12 border-b border-[#ddd6cb] group transition-colors hover:bg-[#f0ebe2] cursor-pointer ${idx % 2 === 0 ? 'bg-[#FDFAF5]' : 'bg-[#F7F3EC]'}`}
+                  >
+                    <div className="col-span-1 px-3 py-3.5 border-r border-[#d0c9be] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleSelectCustomer(customerId, sorted)}
+                        className="p-1 text-[#a09888] hover:text-accent"
+                      >
+                        {isSelected ? (
+                          <CheckSquare size={16} className="text-accent" />
+                        ) : isPartial ? (
+                          <div className="w-4 h-4 border-2 border-accent bg-accent/20 rounded flex items-center justify-center">
+                            <div className="w-2 h-0.5 bg-accent" />
+                          </div>
+                        ) : (
+                          <Square size={16} />
+                        )}
+                      </button>
                     </div>
-                    {customer?.mobile && <div className="text-[10px] text-[#a09888] mt-0.5">{customer.mobile}</div>}
-                  </div>
-                  <div className="col-span-5 px-3 py-3.5 border-r border-[#d0c9be] flex items-center select-none">
-                    {sorted.length > 1 ? (
-                      <div className="text-xs font-mono text-[#555] leading-relaxed">
-                        {sorted.map((e, i) => (
-                          <span key={e.id}>
-                            {i > 0 && <span className="text-[#a09888] mx-1">+</span>}
-                            <span className={`font-semibold ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
-                              {e.amount}
-                            </span>
-                          </span>
-                        ))}
+                    <div className="col-span-4 px-3 py-3.5 border-r border-[#d0c9be] flex flex-col justify-center">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/customers/${customerId}`);
+                        }}
+                        className="text-sm font-bold text-[#1a1a1a] leading-tight hover:text-accent transition-colors hover:underline cursor-pointer"
+                      >
+                        {customer?.name || 'Unknown'}
                       </div>
-                    ) : (
-                      <span className={`text-xs font-mono font-semibold ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
-                        {sorted[0]?.amount}
+                      <div className="flex items-center gap-2 mt-1">
+                        {customer?.mobile && <span className="text-[10px] text-[#a09888]">{customer.mobile}</span>}
+                      </div>
+                    </div>
+                    <div className="col-span-5 px-3 py-3.5 border-r border-[#d0c9be] flex items-center select-none">
+                      {sorted.length > 1 ? (
+                        <div className="text-xs font-mono text-[#555] leading-relaxed">
+                          {sorted.map((e, i) => {
+                            const entrySelected = selectedIds.includes(e.id);
+                            return (
+                              <span key={e.id} className="inline-flex items-center">
+                                {i > 0 && <span className="text-[#a09888] mx-1">+</span>}
+                                <span 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectId(e.id);
+                                  }}
+                                  className={`px-1 py-0.5 rounded cursor-pointer transition-colors ${
+                                    entrySelected 
+                                      ? 'bg-accent/10 text-accent font-black' 
+                                      : customer?.outstanding <= 0 
+                                        ? 'text-[#a09888] line-through decoration-[#a09888]/50' 
+                                        : 'text-[#1a1a1a] font-semibold hover:bg-black/5'
+                                  }`}
+                                >
+                                  {e.amount}
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectId(sorted[0]?.id);
+                          }}
+                          className={`text-xs font-mono px-1 py-0.5 rounded cursor-pointer transition-colors ${
+                            selectedIds.includes(sorted[0]?.id)
+                              ? 'bg-accent/10 text-accent font-black'
+                              : customer?.outstanding <= 0 
+                                ? 'text-[#a09888] line-through decoration-[#a09888]/50' 
+                                : 'text-[#1a1a1a] font-semibold hover:bg-black/5'
+                          }`}
+                        >
+                          {sorted[0]?.amount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="col-span-2 px-3 py-3.5 flex items-center justify-end">
+                      <span className={`text-sm font-black tabular-nums ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
+                        {fmt(total)}
                       </span>
-                    )}
+                    </div>
                   </div>
-                  <div className="col-span-2 px-3 py-3.5 flex items-center justify-end">
-                    <span className={`text-sm font-black tabular-nums ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
-                      {fmt(total)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Grand total row */}
               <div className="grid grid-cols-12 border-t-2 border-double border-[#b0a898] bg-[#ece7de]">
@@ -784,21 +958,34 @@ export default function DailyBook() {
             <div className="text-[11px] font-black text-[#7a6e5e] uppercase tracking-widest mb-3">Payments Received</div>
             <div className="border border-[#d0c9be] bg-[#FDFAF5] rounded-xl overflow-hidden">
               <div className="grid grid-cols-12 border-b border-[#d0c9be] bg-[#f0ebe2] px-4 py-2">
-                <div className="col-span-7 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider">Customer</div>
+                <div className="col-span-1" />
+                <div className="col-span-6 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider">Customer</div>
                 <div className="col-span-5 text-[10px] font-black text-[#7a6e5e] uppercase tracking-wider text-right">Amount</div>
               </div>
               {dayPayments.map((p) => {
                 const customer = customers.find((c) => String(c.id) === String(p.customerId));
+                const isSelected = selectedIds.includes(p.id);
                 return (
-                  <Link to={`/customers/${p.customerId}`} key={p.id}
-                    className="grid grid-cols-12 px-4 py-3 border-b border-[#ddd6cb] last:border-b-0 hover:bg-[#f0ebe2] transition-colors">
-                    <div className="col-span-7 text-sm font-semibold text-[#1a1a1a]">{customer?.name || 'Unknown'}</div>
+                  <div key={p.id}
+                    className="grid grid-cols-12 px-4 py-3 border-b border-[#ddd6cb] last:border-b-0 hover:bg-[#f0ebe2] transition-colors items-center">
+                    <div className="col-span-1 flex items-center justify-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSelectId(p.id); }}
+                        className="p-1 text-[#a09888] hover:text-accent"
+                      >
+                        {isSelected ? <CheckSquare size={16} className="text-accent" /> : <Square size={16} />}
+                      </button>
+                    </div>
+                    <div className="col-span-6 text-sm font-semibold text-[#1a1a1a]">
+                      <Link to={`/customers/${p.customerId}`} className="hover:underline">{customer?.name || 'Unknown'}</Link>
+                    </div>
                     <div className="col-span-5 text-right text-sm font-black text-green-700 tabular-nums">{fmt(p.amount)}</div>
-                  </Link>
+                  </div>
                 );
               })}
               <div className="grid grid-cols-12 px-4 py-2.5 bg-green-50 border-t-2 border-green-100">
-                <div className="col-span-7 text-xs font-bold text-green-700">Total Received</div>
+                <div className="col-span-1" />
+                <div className="col-span-6 text-xs font-bold text-green-700">Total Received</div>
                 <div className="col-span-5 text-right text-sm font-black text-green-700 tabular-nums">{fmt(totalPayments)}</div>
               </div>
             </div>
@@ -864,6 +1051,41 @@ export default function DailyBook() {
               onClose={() => setMobilePanelOpen(false)}
               preSelectedCustomer={preSelectedCustomer}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ── Warning Confirmation Modal ── */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-[#FDFAF5] border-2 border-[#d0c9be] rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-slide-up">
+            <div className="flex items-center gap-3 text-red-600 mb-3">
+              <Trash2 size={24} className="shrink-0" />
+              <h3 className="text-lg font-black uppercase tracking-wider">Warning!</h3>
+            </div>
+            <p className="text-sm text-[#4a4035] leading-relaxed mb-6 font-medium">
+              {confirmAction === 'all'
+                ? `Are you sure you want to delete ALL records for ${fmtDate(currentDateStr)}? This will permanently delete all credits and payments recorded on this day. This action cannot be undone.`
+                : `Are you sure you want to delete the ${selectedIds.length} selected records? This action cannot be undone.`
+              }
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                }}
+                className="px-4 py-2.5 border border-[#d0c9be] text-[#4a4035] text-xs font-bold rounded-xl hover:bg-[#f0ebe2] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md active:scale-95 transition-all"
+              >
+                Yes, Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

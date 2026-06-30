@@ -71,8 +71,32 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateProfile = async (updatedFields) => {
+    if (!user || !user.token) return;
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user.token}`
+      },
+      body: JSON.stringify(updatedFields)
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to update profile');
+    }
+    const updatedUserDto = await response.json();
+    const newUserState = {
+      ...user,
+      ...updatedUserDto
+    };
+    localStorage.setItem('khata_user', JSON.stringify(newUserState));
+    setUser(newUserState);
+    return newUserState;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
       {!loading && children}
     </AuthContext.Provider>
   );

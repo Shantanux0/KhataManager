@@ -79,4 +79,29 @@ public class TransactionController {
         
         return ResponseEntity.ok(transactionRepository.save(tx));
     }
+
+    @DeleteMapping("/transactions/{id}")
+    public ResponseEntity<Void> deleteTransaction(@PathVariable Long id, Authentication authentication) {
+        User user = getAuthenticatedUser(authentication);
+        return transactionRepository.findById(id).map(tx -> {
+            if (!tx.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).<Void>build();
+            }
+            transactionRepository.delete(tx);
+            return ResponseEntity.ok().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/transactions")
+    public ResponseEntity<Void> deleteTransactions(@RequestParam List<Long> ids, Authentication authentication) {
+        User user = getAuthenticatedUser(authentication);
+        List<Transaction> txs = transactionRepository.findAllById(ids);
+        for (Transaction tx : txs) {
+            if (!tx.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).build();
+            }
+        }
+        transactionRepository.deleteAll(txs);
+        return ResponseEntity.ok().build();
+    }
 }

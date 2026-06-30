@@ -46,6 +46,21 @@ function khataReducer(state, action) {
         ),
       };
     }
+    case 'DELETE_TRANSACTION': {
+      return {
+        ...state,
+        entries: state.entries.filter((e) => String(e.id) !== String(action.payload)),
+        payments: state.payments.filter((p) => String(p.id) !== String(action.payload)),
+      };
+    }
+    case 'DELETE_TRANSACTIONS': {
+      const idsToDelete = new Set(action.payload.map(id => String(id)));
+      return {
+        ...state,
+        entries: state.entries.filter((e) => !idsToDelete.has(String(e.id))),
+        payments: state.payments.filter((p) => !idsToDelete.has(String(p.id))),
+      };
+    }
     default:
       return state;
   }
@@ -145,6 +160,22 @@ export function KhataProvider({ children }) {
           savedPayment.customerId = savedPayment.customer?.id || savedPayment.customerId;
           dispatch({ type: 'ADD_PAYMENT', payload: savedPayment });
           return savedPayment;
+        }
+      } else if (action.type === 'DELETE_TRANSACTION') {
+        const res = await fetch(`${API_URL}/transactions/${action.payload}`, {
+          method: 'DELETE',
+          headers
+        });
+        if (res.ok) {
+          dispatch({ type: 'DELETE_TRANSACTION', payload: action.payload });
+        }
+      } else if (action.type === 'DELETE_TRANSACTIONS') {
+        const res = await fetch(`${API_URL}/transactions?ids=${action.payload.join(',')}`, {
+          method: 'DELETE',
+          headers
+        });
+        if (res.ok) {
+          dispatch({ type: 'DELETE_TRANSACTIONS', payload: action.payload });
         }
       } else {
         dispatch(action);

@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Phone, MapPin, FileText, Edit3, Check, X, IndianRupee } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, FileText, Edit3, Check, X, IndianRupee, Download } from 'lucide-react';
 import { useCustomer } from '../hooks/useCustomers';
 import { useEntriesForCustomer, usePaymentsForCustomer } from '../hooks/useEntries';
 import { useKhata } from '../context/KhataContext';
+import { useAuth } from '../context/AuthContext';
 import { Modal, Badge, fmt, fmtDate, fmtTime, EmptyState } from '../components/ui/index';
 
 import { getTodayIST } from '../utils/dateUtils';
@@ -173,12 +174,297 @@ export default function CustomerPage() {
   const entries = useEntriesForCustomer(id);
   const payments = usePaymentsForCustomer(id);
   const { dispatch } = useKhata();
+  const { user } = useAuth();
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
   const [activeTab, setActiveTab] = useState('history');
+
+  const handleDownloadBill = () => {
+    if (!customer) return;
+
+    const allItems = [
+      ...entries.map(e => ({ type: 'CREDIT', amount: e.amount, time: e.timestamp, date: e.date, desc: 'Purchase/Credit' })),
+      ...payments.map(p => ({ type: 'PAID', amount: p.amount, time: p.timestamp, date: p.date, desc: 'Cash Payment Received' }))
+    ].sort((a, b) => new Date(a.time) - new Date(b.time));
+
+    const chunkSize = 15;
+    const pages = [];
+    for (let i = 0; i < allItems.length; i += chunkSize) {
+      pages.push(allItems.slice(i, i + chunkSize));
+    }
+    if (pages.length === 0) {
+      pages.push([]);
+    }
+
+    const totalCredit = entries.reduce((s, e) => s + e.amount, 0);
+    const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+    const netOutstanding = totalCredit - totalPaid;
+
+    const shopName = user?.shopName || 'KHATA REGISTER';
+    const customerName = customer.name;
+    const customerMobile = customer.mobile || 'N/A';
+    const customerAddress = customer.address || 'N/A';
+
+    let htmlContent = `
+      <html>
+      <head>
+        <title>Bill Statement - ${customerName}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #1a1a1a;
+          }
+          .page {
+            width: 210mm;
+            height: 297mm;
+            padding: 20mm 15mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+          }
+          .page:last-of-type {
+            page-break-after: avoid;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          .shop-name {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+          }
+          .subtitle {
+            font-size: 11px;
+            font-weight: 600;
+            color: #7a6e5e;
+            letter-spacing: 0.1em;
+            margin: 0;
+            text-transform: uppercase;
+          }
+          .divider {
+            border-top: 2px solid #c8bfb0;
+            margin: 15px 0;
+          }
+          .details-table {
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 13px;
+          }
+          .details-table td {
+            padding: 4px 0;
+          }
+          .details-right {
+            text-align: right;
+          }
+          .tx-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            flex: 1;
+          }
+          .tx-table th {
+            border-bottom: 2px solid #1a1a1a;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 800;
+            color: #7a6e5e;
+            text-transform: uppercase;
+          }
+          .tx-table td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 8px;
+            font-size: 12px;
+          }
+          .badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+          }
+          .badge-credit {
+            background-color: #fee2e2;
+            color: #C0392B;
+          }
+          .badge-paid {
+            background-color: #dcfce7;
+            color: green;
+          }
+          .amount-column {
+            text-align: right;
+            font-weight: 600;
+          }
+          .footer-section {
+            margin-top: auto;
+            padding-top: 30px;
+          }
+          .totals-table {
+            width: 250px;
+            margin-left: auto;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+          .totals-table td {
+            padding: 6px 0;
+            font-size: 13px;
+          }
+          .totals-table .label {
+            color: #7a6e5e;
+          }
+          .totals-table .val {
+            text-align: right;
+            font-weight: bold;
+          }
+          .totals-table .grand-total {
+            border-top: 1px solid #d0c9be;
+            font-size: 15px;
+            font-weight: 800;
+            padding-top: 10px;
+          }
+          .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: #b0a898;
+            font-style: italic;
+          }
+          .page-num {
+            position: absolute;
+            bottom: 15mm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #a09888;
+          }
+        </style>
+      </head>
+      <body>
+    `;
+
+    pages.forEach((pageItems, pageIdx) => {
+      htmlContent += `
+        <div class="page">
+          <div class="header">
+            <h1 class="shop-name">${shopName}</h1>
+            <p class="subtitle">Customer Statement / Receipt</p>
+          </div>
+          <div class="divider"></div>
+          
+          <table class="details-table">
+            <tr>
+              <td><strong>Customer:</strong> ${customerName}</td>
+              <td class="details-right"><strong>Generated Date:</strong> ${TODAY}</td>
+            </tr>
+            <tr>
+              <td><strong>Mobile:</strong> ${customerMobile}</td>
+              <td class="details-right"><strong>Status:</strong> ${customer.outstanding === 0 ? 'Settled' : 'Active'}</td>
+            </tr>
+            ${customerAddress !== 'N/A' ? `<tr><td><strong>Address:</strong> ${customerAddress}</td><td></td></tr>` : ''}
+          </table>
+
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th style="width: 8%">S.No</th>
+                <th style="width: 32%">Date & Time</th>
+                <th style="width: 32%">Description</th>
+                <th style="width: 14%">Type</th>
+                <th style="width: 14%; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      pageItems.forEach((item, idx) => {
+        const itemIdx = pageIdx * chunkSize + idx + 1;
+        const formattedDateTime = `${fmtDate(item.date)} ${fmtTime(item.time)}`;
+        htmlContent += `
+          <tr>
+            <td>${itemIdx}</td>
+            <td>${formattedDateTime}</td>
+            <td>${item.desc}</td>
+            <td>
+              <span class="badge ${item.type === 'CREDIT' ? 'badge-credit' : 'badge-paid'}">
+                ${item.type}
+              </span>
+            </td>
+            <td class="amount-column">₹${item.amount.toLocaleString('en-IN')}</td>
+          </tr>
+        `;
+      });
+
+      htmlContent += `
+            </tbody>
+          </table>
+      `;
+
+      if (pageIdx === pages.length - 1) {
+        htmlContent += `
+          <div class="footer-section">
+            <table class="totals-table">
+              <tr>
+                <td class="label">Total Credit:</td>
+                <td class="val" style="color: #C0392B;">₹${totalCredit.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr>
+                <td class="label">Total Received:</td>
+                <td class="val" style="color: green;">₹${totalPaid.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr class="grand-total">
+                <td class="label">Net Balance:</td>
+                <td class="val" style="color: ${netOutstanding >= 0 ? '#C0392B' : 'green'};">
+                  ₹${netOutstanding.toLocaleString('en-IN')}
+                </td>
+              </tr>
+            </table>
+            <div class="divider"></div>
+            <p class="footer-note">Thank you for your business! · Generated via KhataManager</p>
+          </div>
+        `;
+      }
+
+      htmlContent += `
+          <div class="page-num">Page ${pageIdx + 1} of ${pages.length}</div>
+        </div>
+      `;
+    });
+
+    htmlContent += `
+      </body>
+      </html>
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 500);
+  };
 
   if (!customer) {
     return (
@@ -217,6 +503,9 @@ export default function CustomerPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleDownloadBill} className="btn-ghost p-2" title="Download Bill Statement">
+            <Download size={15} />
+          </button>
           <button onClick={() => { setNotesValue(customer.notes || ''); setShowEditModal(true); }} className="btn-ghost p-2">
             <Edit3 size={15} />
           </button>
