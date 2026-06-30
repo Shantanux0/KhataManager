@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, BookOpen, CalendarDays, Plus, Check, Search, X, UserPlus, PanelRightOpen, PanelRightClose, IndianRupee } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { useCustomers } from '../hooks/useCustomers';
@@ -574,6 +574,7 @@ export default function DailyBook() {
   const { state } = useKhata();
   const { entries, payments } = state;
   const customers = useCustomers();
+  const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(new Date(TODAY));
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -722,7 +723,13 @@ export default function DailyBook() {
                     <span className="text-xs font-bold text-[#a09888]">{idx + 1}</span>
                   </div>
                   <div className="col-span-4 px-3 py-3.5 border-r border-[#d0c9be] flex flex-col justify-center">
-                    <div className="text-sm font-bold text-[#1a1a1a] leading-tight group-hover:text-accent transition-colors">
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/customers/${customerId}`);
+                      }}
+                      className="text-sm font-bold text-[#1a1a1a] leading-tight hover:text-accent transition-colors hover:underline cursor-pointer"
+                    >
                       {customer?.name || 'Unknown'}
                     </div>
                     {customer?.mobile && <div className="text-[10px] text-[#a09888] mt-0.5">{customer.mobile}</div>}
@@ -733,16 +740,22 @@ export default function DailyBook() {
                         {sorted.map((e, i) => (
                           <span key={e.id}>
                             {i > 0 && <span className="text-[#a09888] mx-1">+</span>}
-                            <span className="font-semibold text-[#1a1a1a]">{e.amount}</span>
+                            <span className={`font-semibold ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
+                              {e.amount}
+                            </span>
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs font-mono font-semibold text-[#1a1a1a]">{sorted[0]?.amount}</span>
+                      <span className={`text-xs font-mono font-semibold ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
+                        {sorted[0]?.amount}
+                      </span>
                     )}
                   </div>
                   <div className="col-span-2 px-3 py-3.5 flex items-center justify-end">
-                    <span className="text-sm font-black text-[#1a1a1a] tabular-nums">{fmt(total)}</span>
+                    <span className={`text-sm font-black tabular-nums ${customer?.outstanding <= 0 ? 'text-[#a09888] line-through decoration-[#a09888]/50' : 'text-[#1a1a1a]'}`}>
+                      {fmt(total)}
+                    </span>
                   </div>
                 </div>
               ))}

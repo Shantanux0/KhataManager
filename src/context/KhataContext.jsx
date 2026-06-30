@@ -3,6 +3,8 @@ import { useAuth } from './AuthContext';
 
 const KhataContext = createContext(null);
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082/api';
+
 const initialState = {
   customers: [],
   entries: [],
@@ -63,9 +65,9 @@ export function KhataProvider({ children }) {
       try {
         const headers = { 'Authorization': `Bearer ${user.token}` };
         const [custRes, entRes, payRes] = await Promise.all([
-          fetch('http://localhost:8082/api/customers', { headers }),
-          fetch('http://localhost:8082/api/entries', { headers }),
-          fetch('http://localhost:8082/api/payments', { headers })
+          fetch('${API_URL}/customers', { headers }),
+          fetch('${API_URL}/entries', { headers }),
+          fetch('${API_URL}/payments', { headers })
         ]);
         
         if (custRes.ok && entRes.ok && payRes.ok) {
@@ -98,7 +100,7 @@ export function KhataProvider({ children }) {
     try {
       if (action.type === 'ADD_CUSTOMER') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('http://localhost:8082/api/customers', {
+        const res = await fetch('${API_URL}/customers', {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)
@@ -109,7 +111,7 @@ export function KhataProvider({ children }) {
           return savedCustomer;
         }
       } else if (action.type === 'UPDATE_CUSTOMER') {
-        const res = await fetch(`http://localhost:8082/api/customers/${action.payload.id}`, {
+        const res = await fetch(`${API_URL}/customers/${action.payload.id}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify(action.payload)
@@ -120,7 +122,7 @@ export function KhataProvider({ children }) {
         }
       } else if (action.type === 'ADD_ENTRY') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('http://localhost:8082/api/entries', {
+        const res = await fetch('${API_URL}/entries', {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)
@@ -133,7 +135,7 @@ export function KhataProvider({ children }) {
         }
       } else if (action.type === 'ADD_PAYMENT') {
         const { id, ...payloadWithoutId } = action.payload;
-        const res = await fetch('http://localhost:8082/api/payments', {
+        const res = await fetch('${API_URL}/payments', {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithoutId)

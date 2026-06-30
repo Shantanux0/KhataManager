@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082/api';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8082/api/auth/login', {
+      const response = await fetch('${API_URL}/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -42,7 +44,7 @@ export function AuthProvider({ children }) {
   const register = async (name, shopName, email, password) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8082/api/auth/register', {
+      const response = await fetch('${API_URL}/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, shopName, email, password })
